@@ -5,6 +5,7 @@ next to SKILL.md. Values are never printed."""
 from __future__ import annotations
 
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -27,7 +28,13 @@ def load() -> None:
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+                v = v.strip()
+                if v[:1] in ("'", '"'):
+                    v = v.strip("'\"")
+                else:  # drop a trailing "  # comment"
+                    v = re.split(r"\s+#", v, maxsplit=1)[0].strip()
+                if v:  # an empty value means "not set"
+                    os.environ.setdefault(k.strip(), v)
 
 
 def need(*names: str) -> list[str]:
