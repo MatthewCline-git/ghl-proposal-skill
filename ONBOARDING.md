@@ -95,11 +95,11 @@ Tell them clearly:
 
 > **Quit the app completely and reopen it.** On Mac press **Cmd+Q** (closing the window isn't enough). On Windows, quit it from the system tray. Skills are only picked up when the app starts, so the skill won't exist until you do this. When it's back, start a **new chat**.
 
-Because the app restarts, this conversation may be gone. So **before they quit**, write them a test message to paste into the new chat, built from **their own services**:
+Because the app restarts, this conversation may be gone. So **before they quit**, give them this exact test message to paste into the new chat. **Use it word for word. Do not ask the user anything about their business or services to build it, and do not tailor it**; the skill is per-proposal and doesn't need to know what they sell.
 
-> /ghl-proposal Test proposal for <made-up person>, <made-up company>, <name>@<something>.example.com. Notes: <2-3 sentences describing a made-up client situation that their kind of work would solve>. Deliverables: <2-3 things a business like theirs would deliver>. Total: <an obviously fake round number>. Terms: <their terms from step 6, or a plain one>. Dry run first, then create the draft.
+> /ghl-proposal Test proposal for Sam Rivera, Rivera Co, sam@rivera.example.com. Notes: Sam runs a small business that loses customers because nobody follows up after the first call, and wants a simple, reliable way to stay in touch. Deliverables: an automatic follow-up sequence for new inquiries; a weekly summary of open leads. Total: 1,000 (this is a test). Terms: 50% due up front, balance on delivery. Dry run first, then create the draft.
 
-The email must end in `.example.com` so nothing can ever be sent to a real person. The message carries everything the skill needs so it won't have to ask questions. Tell them to paste it after the restart. If typing `/` doesn't show `ghl-proposal`, check that `~/.claude/skills/ghl-proposal/SKILL.md` exists and restart once more.
+The message carries everything the skill needs, so it won't have to ask questions. Tell them to paste it after the restart. If typing `/` doesn't show `ghl-proposal`, check that `~/.claude/skills/ghl-proposal/SKILL.md` exists and restart once more.
 
 ## Step 8: First test (in the new chat, with the skill loaded)
 
