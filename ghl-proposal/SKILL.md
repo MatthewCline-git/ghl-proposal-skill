@@ -28,25 +28,29 @@ Exactly what the template merges in, and nothing else:
 |---|---|
 | client name, company, email (phone optional) | the user |
 | **intro**: what they told us and why this scope | the user's notes; you write it |
-| **scope**: what will be delivered, one line each | the user; you write the lines |
+| **scope**: what will be delivered, one line each | what the user says they'll deliver; you word the lines. A client's problems alone are not a scope |
 | **total**: one price | the user, verbatim; 0 is fine |
-| **terms**: how they get paid, anything else standard | the user, verbatim, or the saved defaults in `defaults.json` |
+| **terms**: how they get paid, anything else standard | the user, verbatim, or saved defaults in `defaults.json`. An empty `terms` list there means none are saved: ask |
 | **valid for** N days | the user, else `defaults.json` (14) |
 
 ## Intake: ask once, all up front
 
-1. Pull everything above out of the user's message. Raw call notes are the input for the intro and scope; don't make them restate it.
-2. If anything is missing, send **one** message: a line on what you already have, then only the missing items as a short numbered list with an example each (e.g. "Total price, one number: 3,500"). Say one free-form reply covering all of it is fine. Never ask one question at a time, and don't start creating anything until you have it all.
+0. **Preflight.** Confirm the `.env` next to this file exists and has both keys set (never print it). If not, stop and go to Setup before asking anything.
+1. Pull everything above out of the user's message. Raw call notes are the input for the intro; don't make them restate them. If they only described the client's problems, you still need what they will deliver.
+2. If anything is missing, send **one** message: a line on what you already have, then only the missing items as a short numbered list with an example each (e.g. "Total price, one number: 3,500"). Examples only show the format; say so, and never treat a "yes" or silence as accepting an example. If you'd like to help with scope, you may offer suggested lines clearly labelled as your suggestion, but use them only if the user says yes. State the validity default in one clause instead of asking. Say one free-form reply covering all of it is fine. Never ask one question at a time, and don't start creating anything until you have it all.
 3. Never invent a price, a term, a deliverable or a client detail. A missing price or term is a question, not a guess.
+4. If the client's email looks like a placeholder (`example.com`, `.test` and the like), point it out once in case it's a typo. Documents are always drafts, so proceed if they confirm.
 
 ## Edit their input
 
 Their wording will be rough. Turn it into proposal-ready text:
-- **intro**: 2-3 plain sentences in the client's own words: what they told us and why this scope. No sales copy.
-- **scope**: one specific, plain deliverable per line.
-- **terms**: as stated, tidied.
+- **intro**: 2-3 plain sentences addressed to the client by first name ("Priya, you told us..."): what they said and why this scope. Paraphrase faithfully; don't invent quotes or sharpen their claims. No sales copy.
+- **scope**: one plain deliverable per line, worded from what the user said they'll deliver. Don't add channels, timing, cadence or detail they didn't state; if a line is too vague to be a deliverable, ask about it in the intake message.
+- **terms**: tidy the wording and punctuation only. "Half up front" may become "50% due up front" (same number). Never compute or add an amount (like "$2,250"), a condition or a term they didn't state, and use exactly the terms they gave (no "standard" extras).
 
-You may fix grammar, tighten, reorder and drop chatter. You may **not** change the meaning, change any number, or add a commitment, deliverable or assumption they didn't state. The total and the terms are verbatim. Show the result in the dry run and say in one line what you changed; if they want it different, edit and show again.
+You may fix grammar, tighten, reorder and drop chatter. You may **not** change the meaning, change a number, or add a commitment, deliverable or assumption they didn't state. The total is verbatim. **If a phrase is ambiguous** (for example "when it's live", "after we start"), keep their meaning as written and flag it in your note ("I read 'after we start' as 'once work has started'; tell me if not") instead of quietly resolving it.
+
+**The dry run** is the formatted text the client will see (intro, scope, total, terms, valid-through), then one line on what you changed and any phrase you flagged. It needs no GHL calls; make the lookups only after the user says yes. If they want it different, edit and show again.
 
 After the first successful proposal, offer once to save their terms (and validity period) as defaults in `defaults.json` so they don't have to say them again.
 
