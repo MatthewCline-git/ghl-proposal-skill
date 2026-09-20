@@ -159,6 +159,11 @@ def stage(run_id: str, name: str, stages: list):
     say(f"  ✓ {name} ({ms}ms)")
 
 
+def fit(text: str, limit: int = 40) -> str:
+    """GHL rejects estimate titles over 40 characters too."""
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
+
+
 def estimate_name(company: str, run_id: str) -> str:
     """GHL rejects estimate names over 40 characters (a real 422, found in the live test)."""
     suffix = f" — {run_id}"
@@ -294,7 +299,7 @@ def main() -> int:
             body = {
                 "altId": loc, "altType": "location", "liveMode": LIVE, "currency": card["currency"],
                 "name": estimate_name(c["company"], run_id),
-                "title": f"Proposal for {c['company']}",
+                "title": fit(f"Proposal for {c['company']}"),
                 "businessDetails": {k: v for k, v in {"name": biz.get("name"), "phoneNo": biz.get("phone"),
                                                        "website": biz.get("website")}.items() if v},
                 "contactDetails": {"id": contact_id, "name": c["name"], "email": c["email"],
