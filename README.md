@@ -13,8 +13,12 @@ Free to use (MIT).
 
 ## Two editions
 
-- **`ghl-proposal-lite`** (recommended to start): Claude calls GHL directly with `curl`, following the tested playbook in `SKILL.md`. Nothing to install. Failures are reported to you in the chat; a plain `runs.log` records each run.
-- **`ghl-proposal`**: the same behavior driven by Python scripts (standard library only). It runs a fixed retry / duplicate-guard / verify routine, keeps a structured run log, can push failure alerts, and has a watchdog for runs that hang. Needs Python 3.
+Same behavior; pick by what's already on your machine.
+
+- **`ghl-proposal`** (Python 3 installed): scripts run a fixed retry, duplicate-guard and verify routine, keep a structured run log, can push failure alerts, and include a watchdog for runs that hang. Standard library only, nothing to `pip install`.
+- **`ghl-proposal-lite`** (no Python): Claude calls GHL directly with `curl`, following the tested playbook in `SKILL.md`. Nothing to install. Failures are reported to you in the chat; a plain `runs.log` records each run.
+
+The setup guide picks the right one for you.
 
 ## Set up (about 10 minutes)
 
