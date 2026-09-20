@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Turn a proposal spec into a real GoHighLevel estimate, verify it landed, and
-leave a run log. Claude drafts the spec; this script does everything that must
-not be improvised: pricing, API calls, retries, verification, alerting.
+"""Turn a proposal spec into a real GoHighLevel proposal document (or estimate),
+verify it landed, and leave a run log. Claude drafts the spec from what the user
+said; this script does everything that must not be improvised: API calls,
+retries, duplicate guard, verification, alerting.
 
   create_proposal.py spec.json [--dry-run] [--send] [--run-id ID]
                                [--inject transient|hard]
@@ -42,8 +43,20 @@ def say(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
 
 
-# ---------------------------------------------------------------- spec + price
-def validate_spec(spec: dict, card: dict) -> None:
+# ---------------------------------------------------------------- spec
+def load_defaults() -> dict:
+    d = json.loads(Path(os.environ.get("GHL_PROPOSAL_DEFAULTS") or SKILL_DIR / "defaults.json").read_text())
+    d.setdefault("currency", "USD")
+    d.setdefault("valid_days", 14)
+    d.setdefault("terms", [])
+    return d
+
+
+def _num(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 1_000_000
+
+
+def validate_spec(spec: dict, fmt: str, defaults: dict) -> None:
     errs: list[str] = []
     c = spec.get("client") or {}
     for k in ("name", "company", "email"):
@@ -54,45 +67,35 @@ def validate_spec(spec: dict, card: dict) -> None:
     intro = spec.get("intro", "")
     if not isinstance(intro, str) or not 20 <= len(intro.strip()) <= 900:
         errs.append("intro must be 20-900 characters: what we heard and why this scope")
-    items = spec.get("items")
-    if not isinstance(items, list) or not 1 <= len(items) <= 10:
-        errs.append("items must be a list of 1-10 entries")
-        items = []
-    seen: set[str] = set()
-    for i, it in enumerate(items):
-        extra = set(it) - {"sku", "note", "qty", "name", "description", "amount"}
-        if extra:
-            errs.append(f"items[{i}] has unknown keys {sorted(extra)}")
-        sku = it.get("sku")
-        if sku is not None:
-            if sku in card["items"] and "amount" not in card["items"][sku] and "amount" not in it:
-                errs.append(f"items[{i}].sku {sku!r} is quoted per job on the rate card: give its amount")
-            if sku not in card["items"]:
-                errs.append(f"items[{i}].sku {sku!r} is not in the rate card ({', '.join(card['items'])}); "
-                            f"for something else, give it a name, description and amount instead of a sku")
-            if sku in seen:
-                errs.append(f"items[{i}].sku {sku!r} appears twice; use qty instead")
-            seen.add(sku)
-        else:  # custom line: the user's own price for something not on the card
+    if fmt == "document":
+        scope = spec.get("scope")
+        if not isinstance(scope, list) or not 1 <= len(scope) <= 12 or not all(
+                isinstance(x, str) and 0 < len(x.strip()) <= 400 for x in scope):
+            errs.append("scope must be a list of 1-12 deliverable lines (each up to 400 characters)")
+        if not _num(spec.get("total")):
+            errs.append("total is required: the price as a number the user gave (0 is allowed)")
+    else:
+        items = spec.get("items")
+        if not isinstance(items, list) or not 1 <= len(items) <= 10:
+            errs.append("items must be a list of 1-10 entries")
+            items = []
+        for i, it in enumerate(items):
             if not str(it.get("name", "")).strip():
-                errs.append(f"items[{i}] needs a sku, or a name + description + amount")
-            if not str(it.get("description", "")).strip():
-                errs.append(f"items[{i}] custom line needs a description")
-            if "amount" not in it:
-                errs.append(f"items[{i}] custom line needs an amount")
-        if "amount" in it and (isinstance(it["amount"], bool) or not isinstance(it["amount"], (int, float))
-                               or not 0 <= it["amount"] <= 1_000_000):
-            errs.append(f"items[{i}].amount must be a number from 0 to 1,000,000")
-        if not isinstance(it.get("qty", 1), int) or not 1 <= it.get("qty", 1) <= 20:
-            errs.append(f"items[{i}].qty must be an integer 1-20")
-        if len(it.get("note", "")) > 300:
-            errs.append(f"items[{i}].note is over 300 characters")
-    n = spec.get("estimate_number")
-    if n is not None and (isinstance(n, bool) or not isinstance(n, int) or not 1 <= n <= 999_999):
-        errs.append("estimate_number must be an integer 1-999999 (GHL rejects one already in use)")
-    if "terms" in spec and (not isinstance(spec["terms"], list)
-                            or not all(isinstance(t, str) and t.strip() for t in spec["terms"])):
-        errs.append("terms must be a list of non-empty strings (it replaces the rate card's terms)")
+                errs.append(f"items[{i}].name is required")
+            if not _num(it.get("amount")):
+                errs.append(f"items[{i}].amount is required: a number the user gave")
+            if not isinstance(it.get("qty", 1), int) or not 1 <= it.get("qty", 1) <= 20:
+                errs.append(f"items[{i}].qty must be an integer 1-20")
+        n = spec.get("estimate_number")
+        if n is not None and (isinstance(n, bool) or not isinstance(n, int) or not 1 <= n <= 999_999):
+            errs.append("estimate_number must be an integer 1-999999 (GHL rejects one already in use)")
+    terms = spec["terms"] if "terms" in spec else defaults["terms"]
+    if not isinstance(terms, list) or not terms or not all(isinstance(t, str) and t.strip() for t in terms):
+        errs.append("terms are required: the user's payment/other terms for this proposal "
+                    "(or save default terms in defaults.json)")
+    vd = spec.get("valid_days", defaults["valid_days"])
+    if isinstance(vd, bool) or not isinstance(vd, int) or not 1 <= vd <= 365:
+        errs.append("valid_days must be an integer 1-365")
     for a in spec.get("assumptions", []):
         if not isinstance(a, str) or not a.strip():
             errs.append("assumptions must be non-empty strings")
@@ -100,41 +103,23 @@ def validate_spec(spec: dict, card: dict) -> None:
         raise SpecError("; ".join(errs))
 
 
-def price(spec: dict, card: dict) -> tuple[list[dict], float]:
-    """Amounts come from the rate card unless the spec carries one — which must be
-    a price the user gave, since nothing here can check that. Each line records
-    where its number came from so the dry run and run log make it visible."""
-    lines = []
-    for it in spec["items"]:
-        qty = it.get("qty", 1)
-        if "sku" in it:
-            r = card["items"][it["sku"]]
-            name, base = r["name"], r["description"]
-            amount = it.get("amount", r.get("amount"))
-            source = "override" if "amount" in it and it["amount"] != r.get("amount") else "rate_card"
-        else:
-            name, base, amount, source = it["name"].strip(), it["description"].strip(), it["amount"], "custom"
-        desc = base + (f" {it['note'].strip()}" if it.get("note") else "")
-        lines.append({"name": name, "description": desc, "currency": card["currency"],
-                      "amount": amount, "qty": qty, "type": "one_time", "_source": source})
+def terms_of(spec: dict, defaults: dict) -> list[str]:
+    return list(spec["terms"] if "terms" in spec else defaults["terms"])
+
+
+def estimate_lines(spec: dict, defaults: dict) -> tuple[list[dict], float]:
+    lines = [{"name": it["name"].strip(), "description": (it.get("description") or "").strip(),
+              "currency": defaults["currency"], "amount": it["amount"], "qty": it.get("qty", 1),
+              "type": "one_time"} for it in spec["items"]]
     return lines, sum(l["amount"] * l["qty"] for l in lines)
 
 
-def clean(lines: list[dict]) -> list[dict]:
-    return [{k: v for k, v in l.items() if not k.startswith("_")} for l in lines]
-
-
-def terms_html(spec: dict, card: dict) -> str:
+def terms_html(spec: dict, defaults: dict) -> str:
     esc = html.escape
     out = [f"<p>{esc(spec['intro'].strip())}</p>"]
     if spec.get("assumptions"):
         out.append("<h4>Assumptions</h4><ul>" + "".join(f"<li>{esc(a)}</li>" for a in spec["assumptions"]) + "</ul>")
-    skus = {i.get("sku") for i in spec["items"]}
-    terms = spec["terms"] if "terms" in spec else [
-        t if isinstance(t, str) else t["text"] for t in card["terms"]
-        if isinstance(t, str) or not t.get("only_with") or t["only_with"] in skus]
-    if terms:
-        out.append("<h4>Terms</h4><ul>" + "".join(f"<li>{esc(t)}</li>" for t in terms) + "</ul>")
+    out.append("<h4>Terms</h4><ul>" + "".join(f"<li>{esc(t)}</li>" for t in terms_of(spec, defaults)) + "</ul>")
     return "".join(out)
 
 
@@ -260,22 +245,27 @@ def main() -> int:
     say(f"run {run_id}")
 
     try:
-        card = json.loads(Path(os.environ.get("GHL_PROPOSAL_RATE_CARD") or SKILL_DIR / "rate_card.json").read_text())
-        if not card.get("configured"):
-            raise SetupError("rate_card.json isn't set up yet. Run the rate card interview in SKILL.md "
-                             "(what you sell, prices, standard terms) and set configured to true.")
+        defaults = load_defaults()
         try:
             spec = json.loads(Path(args.spec).read_text())
         except (OSError, json.JSONDecodeError) as exc:
             raise SpecError(f"cannot read spec: {exc}")
         with stage(run_id, "validate", stages):
-            validate_spec(spec, card)
-            lines, total = price(spec, card)
+            validate_spec(spec, args.format, defaults)
+            if args.format == "estimate":
+                lines, total = estimate_lines(spec, defaults)
+            else:
+                lines, total = [], spec["total"]
         if args.dry_run:
             runlog.event(run_id, "finish", status="dry_run", total=total)
-            print(json.dumps({"status": "dry_run", "run_id": run_id, "total": total,
-                              "items": [{"name": l["name"], "amount": l["amount"], "qty": l["qty"], "price_from": l["_source"]}
-                                        for l in lines]}, indent=2))
+            out = {"status": "dry_run", "run_id": run_id, "format": args.format, "total": total,
+                   "terms": terms_of(spec, defaults),
+                   "valid_days": spec.get("valid_days", defaults["valid_days"])}
+            if args.format == "document":
+                out["scope"] = spec["scope"]
+            else:
+                out["items"] = [{"name": l["name"], "amount": l["amount"], "qty": l["qty"]} for l in lines]
+            print(json.dumps(out, indent=2))
             return 0
         if args.send and args.format == "document":
             raise SpecError("--send is for estimates. Documents are created as drafts: review and send them from GHL.")
@@ -309,7 +299,7 @@ def main() -> int:
         if args.format == "document":
             with stage(run_id, "fields", stages):
                 ids = document_mode.ensure_fields(ghl)
-                values = document_mode.field_values(spec, card, lines, total)
+                values = document_mode.field_values(spec, defaults)
                 ghl.set_contact_fields(contact_id, [{"id": ids[k], "field_value": v} for k, v in values.items()])
             with stage(run_id, "document", stages):
                 doc, resp = document_mode.create_document(ghl, template, contact_id, run_id, counters)
@@ -318,8 +308,8 @@ def main() -> int:
                                               ids=ids, values=values, resp=resp)
             status = "recovered" if counters["retries"] else "success"
             result = {"status": status, "run_id": run_id, "format": "document", "document_id": doc["_id"],
-                      "template": template["name"], "total": total, "currency": card["currency"],
-                      "price_sources": {l["name"]: l["_source"] for l in lines}, "contact_id": contact_id,
+                      "template": template["name"], "total": total, "currency": defaults["currency"],
+                      "contact_id": contact_id,
                       "contact_new": contact_new, "retries": counters["retries"], "sent": False,
                       "document_status": "draft", **report,
                       "next": "Open it in GHL (Payments > Documents & Contracts > Documents), check it, and press Send."}
@@ -333,18 +323,18 @@ def main() -> int:
         with stage(run_id, "estimate", stages):
             biz = ghl.location()
             body = {
-                "altId": loc, "altType": "location", "liveMode": LIVE, "currency": card["currency"],
+                "altId": loc, "altType": "location", "liveMode": LIVE, "currency": defaults["currency"],
                 "name": estimate_name(c["company"], run_id),
                 "title": fit(f"Proposal for {c['company']}"),
                 "businessDetails": {k: v for k, v in {"name": biz.get("name"), "phoneNo": biz.get("phone"),
                                                        "website": biz.get("website")}.items() if v},
                 "contactDetails": {"id": contact_id, "name": c["name"], "email": c["email"],
                                    "phoneNo": c.get("phone", ""), "companyName": c["company"]},
-                "items": clean(lines), "discount": {"type": "percentage", "value": 0},
+                "items": lines, "discount": {"type": "percentage", "value": 0},
                 "frequencySettings": {"enabled": False, "schedule": {}},
-                "termsNotes": terms_html(spec, card), "userId": ghl.user_id(),
+                "termsNotes": terms_html(spec, defaults), "userId": ghl.user_id(),
                 "issueDate": date.today().isoformat(),
-                "expiryDate": (date.today() + timedelta(days=card["valid_days"])).isoformat(),
+                "expiryDate": (date.today() + timedelta(days=spec.get("valid_days", defaults["valid_days"]))).isoformat(),
                 "meta": {"runId": run_id},
             }
             if spec.get("estimate_number"):
@@ -367,9 +357,9 @@ def main() -> int:
         status = "recovered" if counters["retries"] else "success"
         app = os.environ.get("GHL_APP_URL", "https://app.gohighlevel.com").rstrip("/")
         result = {"status": status, "run_id": run_id,
-                  "url": f"{app}/v2/location/{loc}/payments/v2/estimates/edit/{estimate_id}", "price_sources": {l["name"]: l["_source"] for l in lines}, "estimate_id": estimate_id,
+                  "url": f"{app}/v2/location/{loc}/payments/v2/estimates/edit/{estimate_id}", "estimate_id": estimate_id,
                   "estimate_number": e.get("estimateNumber"), "total": total,
-                  "currency": card["currency"], "contact_id": contact_id, "contact_new": contact_new,
+                  "currency": defaults["currency"], "contact_id": contact_id, "contact_new": contact_new,
                   "retries": counters["retries"], "sent": sent, "estimate_status": "sent" if sent else "draft"}
         runlog.event(run_id, "finish", **{k: v for k, v in result.items() if k != "run_id"},
                      http_attempts=ghl.attempts, stages=stages)

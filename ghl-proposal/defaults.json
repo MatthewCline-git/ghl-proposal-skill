@@ -1,0 +1,6 @@
+{
+  "_comment": "Optional defaults. Prices are never stored here: you give the total on every proposal. Terms here are used when a proposal doesn't give its own.",
+  "currency": "USD",
+  "valid_days": 14,
+  "terms": []
+}

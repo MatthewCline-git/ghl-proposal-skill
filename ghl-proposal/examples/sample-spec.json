@@ -4,12 +4,16 @@
     "company": "Reyes Roofing & Restoration",
     "email": "dana@reyesroofing.example.com"
   },
-  "intro": "Dana, you told us leads from your website and Google listing are going cold because nobody calls back for a day or two, and that you have no idea which jobs come from where. This scope fixes both: every inquiry gets an answer in minutes, and you see leads, estimates and revenue in one place.",
-  "items": [
-    {"sku": "missed-call-textback", "note": "Your crew is on roofs all day, so most calls go to voicemail."},
-    {"sku": "speed-to-lead", "note": "Targets the two-day callback gap you described."},
-    {"sku": "pipeline-reporting", "note": "Breaks results out by Google, referrals and door-knocking."},
-    {"sku": "monthly-management"}
+  "intro": "Dana, leads from your website and Google listing are going cold because nobody calls back for a day or two, and with your crew on roofs all day most calls hit voicemail. You also can't tell which jobs come from Google, referrals or door-knocking. This scope makes sure every caller and every inquiry gets an answer within minutes, and puts your leads, estimates and revenue in one place.",
+  "scope": [
+    "Missed-call text-back: an instant text to any caller you didn't pick up.",
+    "New-lead follow-up: automatic call, text and email in the first minutes and days after an inquiry.",
+    "Pipeline and reporting: one view of leads, estimates and revenue by source (Google, referrals, door-knocking)."
+  ],
+  "total": 3500,
+  "terms": [
+    "50% due on acceptance, balance on delivery.",
+    "Phone, texting and email sending fees are billed at cost."
   ],
   "assumptions": [
     "You already have a Google Business Profile and a working website.",

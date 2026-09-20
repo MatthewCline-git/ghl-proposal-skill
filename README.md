@@ -7,7 +7,7 @@ Free to use (MIT).
 ## What you get
 
 - **Straight from Claude to GHL.** No copy-paste and no PDF. (One template is built once, by hand.)
-- **Your prices, not the model's.** Amounts come from your `rate_card.json` or from a number you give. A dry run shows every line and where its price came from before anything is created.
+- **Your prices and terms, not the model's.** You give the total and the terms; Claude never invents one. It asks for everything it needs in a single message, tidies your rough wording into proposal text, and shows you the exact result before anything is created.
 - **Verified.** After creating, it reads what landed back from GHL and fails loudly if the contact, fields, template or signature field are wrong.
 - **Doesn't fail silently.** Transient errors are retried; anything else stops, writes an alert, and tells you the fix ([RUNBOOK.md](ghl-proposal/RUNBOOK.md)). Re-running a failed run never creates a duplicate. A watchdog flags runs that hang.
 
@@ -36,7 +36,7 @@ In Claude Code:
 
 > /ghl-proposal Proposal for Dana Reyes, Reyes Roofing, dana@reyesroofing.com. Notes: crew is on roofs all day so calls go to voicemail; leads go cold for two days; no idea which jobs come from where.
 
-Claude shows the priced lines for approval, then creates a **draft** proposal document for the client. Open it in GHL (Payments → Documents & Contracts → Documents), review, and send. Ask for an estimate instead and it creates a GHL estimate, returning a direct link. To use a price other than the rate card's, or an item that isn't on it, just tell Claude the number.
+Claude shows the priced lines for approval, then creates a **draft** proposal document for the client. Open it in GHL (Payments → Documents & Contracts → Documents), review, and send. Ask for an estimate instead and it creates a GHL estimate, returning a direct link. Tell it the client, what you discussed, what you'll deliver, the total and your terms, in any order and in one message; it asks once for anything missing.
 
 ## See how it handles failure
 
@@ -44,7 +44,6 @@ Ask Claude to run the failure demo, or run the script directly:
 
 ```bash
 cd ghl-proposal
-export GHL_PROPOSAL_RATE_CARD=rate_card.example.json   # a made-up example card; setup writes yours
 python3 scripts/create_proposal.py examples/sample-spec.json --dry-run
 python3 scripts/create_proposal.py examples/sample-spec.json --inject transient   # fake outage: retries, recovers
 python3 scripts/create_proposal.py examples/sample-spec.json --inject hard        # revoked token: real 401, stops, alerts

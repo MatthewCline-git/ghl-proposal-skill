@@ -5,8 +5,9 @@ description: Draft a client proposal from call notes and create it in GoHighLeve
 
 # GHL proposal
 
-You draft. The script executes. Everything that must not be improvised — prices,
-API calls, retries, verification, alerting — lives in `scripts/create_proposal.py`.
+You draft. The script executes. Everything that must not be improvised — API
+calls, retries, the duplicate guard, verification, alerting — lives in
+`scripts/create_proposal.py`. Prices and terms come from the user, never from you.
 
 ## Setup (once)
 
@@ -19,46 +20,57 @@ and says what to fix. If setup isn't done, follow the repo's `ONBOARDING.md`
 Optional alerts: `ALERT_WEBHOOK_URL` (Slack-compatible) and/or `ALERT_EMAIL` +
 `RESEND_API_KEY`. With neither, alerts only reach `runs/alerts.log`.
 
+## What a proposal needs
+
+Exactly what the template merges in, and nothing else:
+
+| item | source |
+|---|---|
+| client name, company, email (phone optional) | the user |
+| **intro**: what they told us and why this scope | the user's notes; you write it |
+| **scope**: what will be delivered, one line each | the user; you write the lines |
+| **total**: one price | the user, verbatim; 0 is fine |
+| **terms**: how they get paid, anything else standard | the user, verbatim, or the saved defaults in `defaults.json` |
+| **valid for** N days | the user, else `defaults.json` (14) |
+
+## Intake: ask once, all up front
+
+1. Pull everything above out of the user's message. Raw call notes are the input for the intro and scope; don't make them restate it.
+2. If anything is missing, send **one** message: a line on what you already have, then only the missing items as a short numbered list with an example each (e.g. "Total price, one number: 3,500"). Say one free-form reply covering all of it is fine. Never ask one question at a time, and don't start creating anything until you have it all.
+3. Never invent a price, a term, a deliverable or a client detail. A missing price or term is a question, not a guess.
+
+## Edit their input
+
+Their wording will be rough. Turn it into proposal-ready text:
+- **intro**: 2-3 plain sentences in the client's own words: what they told us and why this scope. No sales copy.
+- **scope**: one specific, plain deliverable per line.
+- **terms**: as stated, tidied.
+
+You may fix grammar, tighten, reorder and drop chatter. You may **not** change the meaning, change any number, or add a commitment, deliverable or assumption they didn't state. The total and the terms are verbatim. Show the result in the dry run and say in one line what you changed; if they want it different, edit and show again.
+
+After the first successful proposal, offer once to save their terms (and validity period) as defaults in `defaults.json` so they don't have to say them again.
+
 ## Workflow
 
-1. **Collect** from the user: client name, company, email (phone optional) and
-   the call notes. If the notes don't say what was discussed, ask — don't invent scope.
-2. **Read `rate_card.json`** — the user's default price list. If it says `"configured": false`, run the rate card interview below first. Use its skus where
-   they fit. If the user gives a different price, or something that isn't on the
-   card, use an `amount` override or a custom line (`name`, `description`,
-   `amount`). **Every number on a proposal must be one the user gave you or that is
-   on the card. Never estimate, round or invent a price;** if a price is missing,
-   ask. **Only include what the notes call for**; if an item looks like a technical
-   prerequisite of something they asked for, leave it out and suggest it in the dry
-   run instead.
-3. **Write a spec** to a temp file (see `examples/sample-spec.json`):
-   - `intro`: 2–3 plain sentences in the client's own words — what they told us
-     and why this scope. No sales copy, no jargon.
-   - `items`: chosen `sku`s, each with an optional one-sentence `note` tying it to
-     something they actually said. Only add `amount` when the user stated it.
-   - `assumptions`: only ones the notes support.
-   - `estimate_number` (optional): integer shown on the estimate. Omit to use GHL's running counter (which never reuses deleted numbers). GHL rejects one already in use.
-   - `terms` (optional): replaces the rate card's standard terms for this proposal, e.g. for a free or unusual deal. Amount 0 is allowed.
-4. **Dry run first:** `python3 scripts/create_proposal.py spec.json --dry-run`.
-   Show the user the priced lines (with where each price came from) and the total; get a yes. That confirmation is the check on prices.
-5. **Create:** same command without `--dry-run`. By default this fills the user's
+1. **Intake and edit** as above. Then write a spec to a temp file (see
+   `examples/sample-spec.json`):
+   - `client`: `name`, `company`, `email` (`phone` optional)
+   - `intro`, `scope` (list of lines), `total` (a number; 0 is fine)
+   - `terms` (list; optional only if `defaults.json` has default terms),
+     `valid_days` (optional), `assumptions` (optional; only ones the user stated)
+2. **Dry run first:** `python3 scripts/create_proposal.py spec.json --dry-run`.
+   Show the user the exact text (intro, scope, total, terms, valid-through) and
+   your one-line note on what you changed. Get a yes unless they already said go.
+3. **Create:** same command without `--dry-run`. By default this fills the user's
    GHL proposal template (`--format document`) and creates a *draft* document for
-   the client; `--format estimate` creates a GHL estimate instead. Use documents
-   unless the user asks for an estimate.
-6. **Sending:** documents are always drafts; the user reviews and presses Send in
+   the client. Use documents unless the user asks for an estimate.
+4. **Estimates** (only if asked): `--format estimate`, with `items` instead of
+   `scope`/`total`: each `{name, description, amount, qty}` where the user gave
+   every amount (see `examples/sample-estimate-spec.json`). Optional
+   `estimate_number` (integer; GHL rejects one already in use).
+5. **Sending:** documents are always drafts; the user reviews and presses Send in
    GHL. `--send` exists only for estimates and only if the user explicitly says
    send; it refuses placeholder addresses.
-
-## Rate card interview (when `rate_card.json` says `"configured": false`)
-
-Do this before the first proposal. Ask one question at a time, in plain language, and don't suggest services for them:
-
-1. **What do you sell?** For each service: a short name, one plain sentence a client would understand, and the price. If a service is recurring (monthly), use the first month as the amount and put "then $X/month" in the description.
-2. **Standard prices or quoted per job?** For any service they quote each time, leave its `amount` out of the file; you'll ask for the number on every proposal.
-3. **Standard terms.** How do they get paid (deposit, on delivery, net 30)? Anything standard about revisions, cancellation or ongoing work? These print on every proposal. A term that applies only with one service is `{"text": "...", "only_with": "<sku>"}`.
-4. **How many days** should a proposal stay valid (default 14), and which currency (default USD)?
-
-Then rewrite `rate_card.json` (skus are short lowercase-hyphen slugs, `"configured": true`, `items` may be empty if they quote everything), show it to the user, and get a yes. Until then don't create a proposal.
 
 ## Reporting results
 

@@ -1,0 +1,9 @@
+{
+  "client": {"name": "Dana Reyes", "company": "Reyes Roofing & Restoration", "email": "dana@reyesroofing.example.com"},
+  "intro": "Dana, this estimate covers the missed-call text-back and lead follow-up we discussed for your roofing business.",
+  "items": [
+    {"name": "Missed-call text-back", "description": "Instant text to any caller you didn't pick up.", "amount": 750},
+    {"name": "New-lead follow-up", "description": "Automatic call, text and email after an inquiry.", "amount": 1250}
+  ],
+  "terms": ["50% due on acceptance, balance on delivery."]
+}

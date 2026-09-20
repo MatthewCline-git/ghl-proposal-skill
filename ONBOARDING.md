@@ -81,16 +81,13 @@ GHL doesn't let software create templates, so this is manual, and it's the part 
 
 Then run the setup check again. Everything should be ✓, including the template named `Proposal`. If it isn't found, they mis-typed the name or haven't saved.
 
-## Step 6: Their services and prices (rate card)
+## Step 6: How they get paid (optional defaults, one minute)
 
-The skill ships with an **empty** rate card on purpose: it must describe *their* business, not a guess at one. Read the **Rate card interview** section of `~/.claude/skills/ghl-proposal/SKILL.md` and run it now, one question at a time:
+**Prices are per proposal**: the skill asks for the total each time and never stores or guesses one. The only things worth saving are the standard terms. Ask in **one message**:
 
-1. What do you sell? For each service: a short name, one plain sentence a client would understand, and the price (and whether it's one-time or monthly).
-2. Do you have standard prices, or do you quote each job?
-3. Standard terms: how do you get paid, and anything standard about revisions, cancellation or ongoing work?
-4. How many days should a proposal stay valid, and which currency?
+> Two quick things so I can save defaults (skip either; I'll ask on your first proposal instead): 1) How do you usually get paid, and is there anything you put on every proposal (revisions, cancellation, fees at cost)? 2) How many days should a proposal stay valid? (14 if you're not sure.)
 
-Write `~/.claude/skills/ghl-proposal/rate_card.json` from the answers (`"configured": true`), read it back to them, and get a yes. Don't propose services or prices for them, and don't fill gaps with guesses. If they aren't sure yet, do the ones they know; they can add to the file any time, or tell Claude a price for a single proposal.
+Write the answers into `~/.claude/skills/ghl-proposal/defaults.json` (`terms`: a list of short sentences; `valid_days`), read them back, and get a yes. Don't propose terms for them.
 
 ## Step 7: Restart the app (required)
 
@@ -100,13 +97,13 @@ Tell them clearly:
 
 Because the app restarts, this conversation may be gone. So **before they quit**, write them a test message to paste into the new chat, built from **their own services**:
 
-> /ghl-proposal Test proposal for <made-up person>, <made-up company>, <name>@<something>.example.com. Notes: <2-3 sentences describing a made-up client situation that one or two of THEIR services would solve>. Dry run first, then create the draft.
+> /ghl-proposal Test proposal for <made-up person>, <made-up company>, <name>@<something>.example.com. Notes: <2-3 sentences describing a made-up client situation that their kind of work would solve>. Deliverables: <2-3 things a business like theirs would deliver>. Total: <an obviously fake round number>. Terms: <their terms from step 6, or a plain one>. Dry run first, then create the draft.
 
-The email must end in `.example.com` so nothing can ever be sent to a real person. Tell them to paste it after the restart. If typing `/` doesn't show `ghl-proposal`, check that `~/.claude/skills/ghl-proposal/SKILL.md` exists and restart once more.
+The email must end in `.example.com` so nothing can ever be sent to a real person. The message carries everything the skill needs so it won't have to ask questions. Tell them to paste it after the restart. If typing `/` doesn't show `ghl-proposal`, check that `~/.claude/skills/ghl-proposal/SKILL.md` exists and restart once more.
 
 ## Step 8: First test (in the new chat, with the skill loaded)
 
-The skill dry-runs, shows the priced lines (each price traced to their rate card), then creates a **draft** document. It always tells them to open it in GHL before sending. Have them open **Payments → Documents & Contracts → Documents**, open the draft, and check: the client's name and company are filled in, the intro, scope and total read correctly, the layout is clean, and the signature sits on page two. Nothing is sent to anyone; documents are always drafts.
+The skill shows the exact proposal text with its light edits (the total and terms exactly as given), then creates a **draft** document. It always tells them to open it in GHL before sending. Have them open **Payments → Documents & Contracts → Documents**, open the draft, and check: the client's name and company are filled in, the intro, scope and total read correctly, the layout is clean, and the signature sits on page two. Nothing is sent to anyone; documents are always drafts.
 
 Test data (the made-up contact and draft) can be deleted in GHL afterwards.
 

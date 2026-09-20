@@ -1,8 +1,0 @@
-{
-  "_comment": "NOT CONFIGURED. Run the rate card interview in SKILL.md: what you sell, what you charge, your standard terms. The interview sets configured to true.",
-  "configured": false,
-  "currency": "USD",
-  "valid_days": 14,
-  "items": {},
-  "terms": []
-}

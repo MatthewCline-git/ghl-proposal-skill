@@ -62,19 +62,16 @@ def money(amount: float, currency: str) -> str:
     return f"{sym}{amount:,.0f}" if float(amount).is_integer() else f"{sym}{amount:,.2f}"
 
 
-def field_values(spec: dict, card: dict, lines: list[dict], total: float) -> dict[str, str]:
-    cur = card["currency"]
-    scope = "\n".join(
-        f"{l['name']} ({money(l['amount'] * l['qty'], cur)}{' for ' + str(l['qty']) if l['qty'] > 1 else ''}): {l['description']}"
-        for l in lines)
-    skus = {i.get("sku") for i in spec["items"]}
-    terms = spec["terms"] if "terms" in spec else [
-        t if isinstance(t, str) else t["text"] for t in card["terms"]
-        if isinstance(t, str) or not t.get("only_with") or t["only_with"] in skus]
-    terms = list(terms) + [f"Assumes: {a}" for a in spec.get("assumptions", [])]
-    valid = date.today() + timedelta(days=card["valid_days"])
-    return {"proposal_intro": spec["intro"].strip(), "proposal_scope": scope,
-            "proposal_total": money(total, cur), "proposal_terms": "\n".join(terms),
+def field_values(spec: dict, defaults: dict) -> dict[str, str]:
+    """The five values the template merges in. Every one is text the user gave or
+    approved; nothing here invents a price, term or deliverable."""
+    terms = list(spec["terms"] if "terms" in spec else defaults["terms"])
+    terms += [f"Assumes: {a}" for a in spec.get("assumptions", [])]
+    valid = date.today() + timedelta(days=spec.get("valid_days", defaults["valid_days"]))
+    return {"proposal_intro": spec["intro"].strip(),
+            "proposal_scope": "\n".join(x.strip() for x in spec["scope"]),
+            "proposal_total": money(spec["total"], defaults["currency"]),
+            "proposal_terms": "\n".join(terms),
             "proposal_valid_through": f"{valid.strftime('%B')} {valid.day}, {valid.year}"}
 
 
