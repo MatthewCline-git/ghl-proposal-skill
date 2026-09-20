@@ -1,6 +1,6 @@
 ---
 name: ghl-proposal
-description: Draft a client proposal from call notes and create it as a real, priced estimate in GoHighLevel, verified and logged. Use when asked to write, generate, or send a proposal or estimate for a GHL client or prospect, or to check on failed or stuck proposal runs.
+description: Draft a client proposal from call notes and create it in GoHighLevel as a draft proposal document (from the user's template) or a priced estimate, verified and logged. Use when asked to write, generate, or send a proposal or estimate for a GHL client or prospect, or to check on failed or stuck proposal runs.
 ---
 
 # GHL proposal
