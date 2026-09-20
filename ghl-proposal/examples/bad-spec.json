@@ -1,0 +1,3 @@
+{"client": {"name": "Dana Reyes", "company": "Reyes Roofing", "email": "dana@reyesroofing.example.com"},
+ "intro": "A scope with an unknown service and a custom line that has no price.",
+ "items": [{"sku": "free-audit"}, {"name": "Custom thing", "description": "No amount given"}]}

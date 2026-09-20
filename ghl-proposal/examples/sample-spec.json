@@ -1,0 +1,18 @@
+{
+  "client": {
+    "name": "Dana Reyes",
+    "company": "Reyes Roofing & Restoration",
+    "email": "dana@reyesroofing.example.com"
+  },
+  "intro": "Dana, you told us leads from your website and Google listing are going cold because nobody calls back for a day or two, and that you have no idea which jobs come from where. This scope fixes both: every inquiry gets an answer in minutes, and you see leads, estimates and revenue in one place.",
+  "items": [
+    {"sku": "missed-call-textback", "note": "Your crew is on roofs all day, so most calls go to voicemail."},
+    {"sku": "speed-to-lead", "note": "Targets the two-day callback gap you described."},
+    {"sku": "pipeline-reporting", "note": "Breaks results out by Google, referrals and door-knocking."},
+    {"sku": "monthly-management"}
+  ],
+  "assumptions": [
+    "You already have a Google Business Profile and a working website.",
+    "Two team members will use the system."
+  ]
+}
