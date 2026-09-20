@@ -85,12 +85,15 @@ def validate_spec(spec: dict, card: dict) -> None:
             if "amount" not in it:
                 errs.append(f"items[{i}] custom line needs an amount")
         if "amount" in it and (isinstance(it["amount"], bool) or not isinstance(it["amount"], (int, float))
-                               or not 0 < it["amount"] <= 1_000_000):
-            errs.append(f"items[{i}].amount must be a number between 0 and 1,000,000")
+                               or not 0 <= it["amount"] <= 1_000_000):
+            errs.append(f"items[{i}].amount must be a number from 0 to 1,000,000")
         if not isinstance(it.get("qty", 1), int) or not 1 <= it.get("qty", 1) <= 20:
             errs.append(f"items[{i}].qty must be an integer 1-20")
         if len(it.get("note", "")) > 300:
             errs.append(f"items[{i}].note is over 300 characters")
+    if "terms" in spec and (not isinstance(spec["terms"], list)
+                            or not all(isinstance(t, str) and t.strip() for t in spec["terms"])):
+        errs.append("terms must be a list of non-empty strings (it replaces the rate card's terms)")
     for a in spec.get("assumptions", []):
         if not isinstance(a, str) or not a.strip():
             errs.append("assumptions must be non-empty strings")
@@ -128,9 +131,11 @@ def terms_html(spec: dict, card: dict) -> str:
     if spec.get("assumptions"):
         out.append("<h4>Assumptions</h4><ul>" + "".join(f"<li>{esc(a)}</li>" for a in spec["assumptions"]) + "</ul>")
     skus = {i.get("sku") for i in spec["items"]}
-    terms = [t if isinstance(t, str) else t["text"] for t in card["terms"]
-             if isinstance(t, str) or not t.get("only_with") or t["only_with"] in skus]
-    out.append("<h4>Terms</h4><ul>" + "".join(f"<li>{esc(t)}</li>" for t in terms) + "</ul>")
+    terms = spec["terms"] if "terms" in spec else [
+        t if isinstance(t, str) else t["text"] for t in card["terms"]
+        if isinstance(t, str) or not t.get("only_with") or t["only_with"] in skus]
+    if terms:
+        out.append("<h4>Terms</h4><ul>" + "".join(f"<li>{esc(t)}</li>" for t in terms) + "</ul>")
     return "".join(out)
 
 

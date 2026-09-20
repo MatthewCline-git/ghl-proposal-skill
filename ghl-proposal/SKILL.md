@@ -34,6 +34,7 @@ Optional alerts: `ALERT_WEBHOOK_URL` (Slack-compatible) and/or `ALERT_EMAIL` +
    - `items`: chosen `sku`s, each with an optional one-sentence `note` tying it to
      something they actually said. Only add `amount` when the user stated it.
    - `assumptions`: only ones the notes support.
+   - `terms` (optional): replaces the rate card's standard terms for this proposal, e.g. for a free or unusual deal. Amount 0 is allowed.
 4. **Dry run first:** `python3 scripts/create_proposal.py spec.json --dry-run`.
    Show the user the priced lines (with where each price came from) and the total; get a yes. That confirmation is the check on prices.
 5. **Create:** same command without `--dry-run`. This makes a *draft* estimate
