@@ -28,20 +28,14 @@ import _env  # noqa: E402
 
 _env.load()
 
+import document_mode  # noqa: E402
 import runlog  # noqa: E402
+from errors import SetupError, SpecError, VerifyError  # noqa: E402
 from ghl import GHL, GHLError  # noqa: E402
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 LIVE = True
 UNDELIVERABLE = ("example.com", "example.org", "example.net", ".test", ".invalid", ".localhost")
-
-
-class SpecError(ValueError):
-    """The spec Claude wrote is wrong. Nothing was touched; fix it and rerun."""
-
-
-class VerifyError(RuntimeError):
-    """GHL said yes but the thing that exists is not what we asked for."""
 
 
 def say(msg: str) -> None:
@@ -247,7 +241,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("spec")
     ap.add_argument("--dry-run", action="store_true", help="validate and price only; touch nothing")
-    ap.add_argument("--send", action="store_true", help="email the estimate to the client")
+    ap.add_argument("--format", choices=["document", "estimate"],
+                    default=os.environ.get("GHL_PROPOSAL_FORMAT", "document"),
+                    help="document: fill your GHL proposal template (default). estimate: create a GHL estimate")
+    ap.add_argument("--send", action="store_true", help="estimate format only: email it to the client")
     ap.add_argument("--run-id", help="reuse an id to resume a failed run without duplicating anything")
     ap.add_argument("--inject", choices=["transient", "hard"], help="failure demo: fake outage or revoked token")
     args = ap.parse_args()
@@ -275,6 +272,8 @@ def main() -> int:
                               "items": [{"name": l["name"], "amount": l["amount"], "qty": l["qty"], "price_from": l["_source"]}
                                         for l in lines]}, indent=2))
             return 0
+        if args.send and args.format == "document":
+            raise SpecError("--send is for estimates. Documents are created as drafts: review and send them from GHL.")
         if args.send and any(spec["client"]["email"].lower().endswith(d) for d in UNDELIVERABLE):
             raise SpecError(f"refusing to send: {spec['client']['email']} is a placeholder domain that will not deliver")
 
@@ -288,6 +287,11 @@ def main() -> int:
             ghl.inject = {"transient": 2} if args.inject == "transient" else {"hard": True}
             say(f"  (failure demo: injecting {args.inject})")
 
+        template = None
+        if args.format == "document":
+            with stage(run_id, "template", stages):
+                template = document_mode.resolve_template(ghl)
+
         c = spec["client"]
         with stage(run_id, "contact", stages):
             up = ghl.upsert_contact(name=c["name"], email=c["email"], company=c["company"],
@@ -296,6 +300,30 @@ def main() -> int:
             if not contact.get("id"):
                 raise VerifyError(f"contact upsert returned no id: {list(up)}")
             contact_id, contact_new = contact["id"], bool(up.get("new"))
+
+        if args.format == "document":
+            with stage(run_id, "fields", stages):
+                ids = document_mode.ensure_fields(ghl)
+                values = document_mode.field_values(spec, card, lines, total)
+                ghl.set_contact_fields(contact_id, [{"id": ids[k], "field_value": v} for k, v in values.items()])
+            with stage(run_id, "document", stages):
+                doc, resp = document_mode.create_document(ghl, template, contact_id, run_id, counters)
+            with stage(run_id, "verify", stages):
+                report = document_mode.verify(ghl, doc["_id"], contact_id=contact_id, template=template,
+                                              ids=ids, values=values, resp=resp)
+            status = "recovered" if counters["retries"] else "success"
+            result = {"status": status, "run_id": run_id, "format": "document", "document_id": doc["_id"],
+                      "template": template["name"], "total": total, "currency": card["currency"],
+                      "price_sources": {l["name"]: l["_source"] for l in lines}, "contact_id": contact_id,
+                      "contact_new": contact_new, "retries": counters["retries"], "sent": False,
+                      "document_status": "draft", **report,
+                      "next": "Open it in GHL (Payments > Documents & Contracts > Documents), check it, and press Send."}
+            runlog.event(run_id, "finish", **{k: v for k, v in result.items() if k != "run_id"},
+                         http_attempts=ghl.attempts, stages=stages)
+            if status == "recovered":
+                runlog.alert(run_id, "info", f"recovered after {counters['retries']} retries; document {doc['_id']} verified.")
+            print(json.dumps(result, indent=2))
+            return 0
 
         with stage(run_id, "estimate", stages):
             biz = ghl.location()
@@ -349,6 +377,11 @@ def main() -> int:
         runlog.event(run_id, "finish", status="invalid_spec", error=str(exc))
         say(f"spec rejected, nothing was created: {exc}")
         print(json.dumps({"status": "invalid_spec", "run_id": run_id, "error": str(exc)}, indent=2))
+        return 2
+    except SetupError as exc:
+        runlog.event(run_id, "finish", status="misconfigured", error=str(exc))
+        say(f"setup problem, nothing was created: {exc}")
+        print(json.dumps({"status": "misconfigured", "run_id": run_id, "error": str(exc)}, indent=2))
         return 2
     except (GHLError, VerifyError) as exc:
         where = getattr(exc, "stage", "unknown")

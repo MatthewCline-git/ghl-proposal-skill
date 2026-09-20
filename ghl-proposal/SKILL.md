@@ -11,9 +11,10 @@ API calls, retries, verification, alerting — lives in `scripts/create_proposal
 ## Setup (once)
 
 Needs `GHL_TOKEN` (a sub-account Private Integration Token) and `GHL_LOCATION_ID`
-as environment variables or in a `.env` next to this file. Scopes: contacts
-read/write, `invoices/estimate` read/write, users read (or set `GHL_USER_ID`).
-Python 3, standard library only. Never print or echo the token.
+in a `.env` next to this file, and a one-time proposal template named `Proposal`
+(see `template/README.md`). `python3 scripts/check_setup.py` verifies all of it
+and says what to fix. If setup isn't done, follow the repo's `ONBOARDING.md`
+(github.com/MatthewCline-git/ghl-proposal-skill). Python 3, standard library only. Never print or echo the token.
 
 Optional alerts: `ALERT_WEBHOOK_URL` (Slack-compatible) and/or `ALERT_EMAIL` +
 `RESEND_API_KEY`. With neither, alerts only reach `runs/alerts.log`.
@@ -38,16 +39,22 @@ Optional alerts: `ALERT_WEBHOOK_URL` (Slack-compatible) and/or `ALERT_EMAIL` +
    - `terms` (optional): replaces the rate card's standard terms for this proposal, e.g. for a free or unusual deal. Amount 0 is allowed.
 4. **Dry run first:** `python3 scripts/create_proposal.py spec.json --dry-run`.
    Show the user the priced lines (with where each price came from) and the total; get a yes. That confirmation is the check on prices.
-5. **Create:** same command without `--dry-run`. This makes a *draft* estimate
-   in GHL and reads it back from GHL to verify contact, line items, total and text.
-6. **Send only if the user explicitly says send:** add `--send`. It refuses
-   placeholder addresses.
+5. **Create:** same command without `--dry-run`. By default this fills the user's
+   GHL proposal template (`--format document`) and creates a *draft* document for
+   the client; `--format estimate` creates a GHL estimate instead. Use documents
+   unless the user asks for an estimate.
+6. **Sending:** documents are always drafts; the user reviews and presses Send in
+   GHL. `--send` exists only for estimates and only if the user explicitly says
+   send; it refuses placeholder addresses.
 
 ## Reporting results
 
 Report only what the script's JSON says. `status: success` or `recovered` means
-the estimate exists in GHL and was verified — say the estimate number and total, and give the user the `url` (opens the estimate in their GHL).
-Say "draft, not sent" unless `sent: true`.
+the draft exists in GHL and passed the checks listed in `checked`. Say the total
+and, for an estimate, the `url`. Always say it is a draft, not sent. For a
+document, also relay `not_checked`: how the merge renders can't be verified by
+the API, so tell the user to open it in GHL (Payments > Documents & Contracts >
+Documents) before sending. Never claim it looks right.
 
 - `recovered`: it hit transient errors, retried, and verified. Mention the retry count.
 - `failed`: the run stopped, an alert was written, and nothing partial is left

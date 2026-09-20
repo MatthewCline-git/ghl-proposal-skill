@@ -13,6 +13,7 @@ from typing import Callable
 
 BASE = "https://services.leadconnectorhq.com"
 RETRY_STATUS = {429, 500, 502, 503, 504}
+WRITE_PATHS = {"/invoices/estimate", "/proposals/templates/send"}  # where failure demos strike
 NETWORK_ERRORS = (urllib.error.URLError, TimeoutError, ConnectionError)
 
 
@@ -50,7 +51,7 @@ class GHL:
         token = self._token
         # demo fault: a revoked/expired token on the estimate write. GHL's real
         # 401 comes back — only the credential is fake.
-        if self.inject.get("hard") and method == "POST" and path == "/invoices/estimate":
+        if self.inject.get("hard") and method == "POST" and path in WRITE_PATHS:
             token = "pit-00000000-revoked-token-for-failure-demo"
         return {"Authorization": f"Bearer {token}", "Version": "2021-07-28",
                 "Content-Type": "application/json"}
@@ -60,7 +61,7 @@ class GHL:
         for attempt in range(1, max_attempts + 1):
             self.attempts += 1
             try:
-                if (method == "POST" and path == "/invoices/estimate"
+                if (method == "POST" and path in WRITE_PATHS
                         and self.inject.get("transient", 0) > 0):
                     self.inject["transient"] -= 1
                     raise GHLError("simulated 503 Service Unavailable (failure demo)",
@@ -137,3 +138,43 @@ class GHL:
     def delete_estimate(self, estimate_id: str) -> dict:
         return self.request("DELETE", f"/invoices/estimate/{estimate_id}",
                             json={"altId": self.location_id, "altType": "location"})
+
+    # --- documents (proposal templates) ------------------------------------
+    def custom_fields(self) -> dict[str, dict]:
+        fields = self.request("GET", f"/locations/{self.location_id}/customFields").get("customFields", [])
+        return {f["fieldKey"]: f for f in fields}
+
+    def create_custom_field(self, name: str, data_type: str) -> dict:
+        r = self.request("POST", f"/locations/{self.location_id}/customFields",
+                         json={"name": name, "dataType": data_type, "model": "contact"})
+        return r.get("customField", r)
+
+    def set_contact_fields(self, contact_id: str, values: list[dict]) -> None:
+        self.request("PUT", f"/contacts/{contact_id}", json={"customFields": values})
+
+    def contact_field_values(self, contact_id: str) -> dict[str, str]:
+        c = self.request("GET", f"/contacts/{contact_id}").get("contact", {})
+        return {f["id"]: f.get("value") for f in c.get("customFields", [])}
+
+    def _paged(self, path: str, key: str, max_pages: int = 5) -> list[dict]:
+        out: list[dict] = []
+        for page in range(max_pages):  # GHL caps limit at 21 on these endpoints
+            rows = self.request("GET", path, params={"locationId": self.location_id,
+                                                     "limit": 20, "skip": page * 20}).get(key, [])
+            out += rows
+            if len(rows) < 20:
+                break
+        return out
+
+    def templates(self) -> list[dict]:
+        return self._paged("/proposals/templates", "data")
+
+    def list_documents(self) -> list[dict]:
+        return self._paged("/proposals/document", "documents")
+
+    def create_document(self, template_id: str, contact_id: str, user_id: str) -> dict:
+        # draft only, single attempt: a 5xx can hide a write that landed, so the
+        # caller checks for an existing document before every retry.
+        return self.request("POST", "/proposals/templates/send", max_attempts=1, json={
+            "templateId": template_id, "userId": user_id, "locationId": self.location_id,
+            "contactId": contact_id, "sendDocument": False})

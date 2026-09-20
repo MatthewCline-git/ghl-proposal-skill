@@ -18,7 +18,7 @@ estimate with that id before creating anything, so nothing is duplicated.
 ## §1 credentials (401/403)
 GHL rejected the token. It was revoked, rotated, expired or lacks a scope.
 1. GHL sub-account > Settings > Private Integrations: confirm the integration exists.
-2. Create a new token with contacts, `invoices/estimate` and users scopes.
+2. Create a new token with the scopes listed in `ONBOARDING.md` step 3, and run `python3 scripts/check_setup.py` to confirm.
 3. Update `GHL_TOKEN`, then resume with the run id.
 
 ## §2 payload rejected (400/422)

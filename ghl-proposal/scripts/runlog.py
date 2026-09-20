@@ -101,3 +101,10 @@ def unresolved_failures(max_age_min: float) -> list[dict]:
             out.append({"run_id": e["run_id"], "failed_at": e["ts"], "age_min": round(age, 1),
                         "error": e.get("error", "")})
     return out
+
+
+def first_start(run_id: str) -> datetime | None:
+    for e in read_events():
+        if e["run_id"] == run_id and e["event"] == "start":
+            return datetime.fromisoformat(e["ts"])
+    return None

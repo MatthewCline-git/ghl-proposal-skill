@@ -1,30 +1,25 @@
 # ghl-proposal
 
-A [Claude Code](https://claude.com/claude-code) skill that turns call notes into a priced estimate in your GoHighLevel account. Tell Claude who the client is and what was discussed; it drafts the scope, creates the estimate in GHL, reads it back to verify it, and gives you the link. You review and press Send in GHL.
+A [Claude Code](https://claude.com/claude-code) skill that turns call notes into a proposal in your GoHighLevel account. Tell Claude who the client is and what was discussed; it drafts the scope, fills your GHL proposal template, creates the draft for the client, and checks what landed. You review it and press Send in GHL.
 
 Free to use (MIT).
 
 ## What you get
 
-- **Straight from Claude to GHL.** No copy-paste, no PDF, no template to build.
+- **Straight from Claude to GHL.** No copy-paste and no PDF. (One template is built once, by hand.)
 - **Your prices, not the model's.** Amounts come from your `rate_card.json` or from a number you give. A dry run shows every line and where its price came from before anything is created.
-- **Verified.** After creating, it reads the estimate back from GHL and fails loudly if the contact, line items, total or text don't match.
+- **Verified.** After creating, it reads what landed back from GHL and fails loudly if the contact, fields, template or signature field are wrong.
 - **Doesn't fail silently.** Transient errors are retried; anything else stops, writes an alert, and tells you the fix ([RUNBOOK.md](ghl-proposal/RUNBOOK.md)). Re-running a failed run never creates a duplicate. A watchdog flags runs that hang.
 
-## Install (5 minutes)
+## Set up (about 10 minutes)
 
-Requires Claude Code and Python 3 (nothing to `pip install`).
+The easiest way is to let Claude walk you through it. Open Claude Code (the Code tab in the Claude desktop app, or a terminal) and paste:
 
-```bash
-git clone https://github.com/MatthewCline-git/ghl-proposal-skill.git
-ln -s "$PWD/ghl-proposal-skill/ghl-proposal" ~/.claude/skills/ghl-proposal
-cd ghl-proposal-skill/ghl-proposal && cp .env.example .env
-```
+> Set up the ghl-proposal skill for me. Fetch https://raw.githubusercontent.com/MatthewCline-git/ghl-proposal-skill/main/ONBOARDING.md and follow it exactly, one step at a time.
 
-1. In GHL, open the sub-account: **Settings → Private Integrations → Create new integration.** Grant view + edit on Contacts and Invoices/Estimates, and view on Locations and Users. Copy the token (shown once) into `.env` as `GHL_TOKEN`.
-2. Put the sub-account id (the `<id>` in `app.gohighlevel.com/v2/location/<id>/...`) in `.env` as `GHL_LOCATION_ID`.
-3. Edit `rate_card.json`: your services, descriptions, prices and standard terms. The shipped ones are placeholders.
-4. Restart Claude Code so it picks up the skill.
+It installs the skill, sends you to the right GHL pages, and checks each step. You'll need to: create a token in GHL, paste it into a file (never into chat), build one proposal template, and **fully quit and reopen the app** so it picks up the skill.
+
+Prefer to do it yourself? Follow [ONBOARDING.md](ONBOARDING.md); the steps read fine for a person too.
 
 ## Use
 
@@ -32,7 +27,7 @@ In Claude Code:
 
 > /ghl-proposal Proposal for Dana Reyes, Reyes Roofing, dana@reyesroofing.com. Notes: crew is on roofs all day so calls go to voicemail; leads go cold for two days; no idea which jobs come from where.
 
-Claude shows the priced lines for approval, creates a **draft** estimate, and returns a link like `.../payments/v2/estimates/edit/<id>`. Open it in GHL, review, and send. To use a price other than the rate card's, or an item that isn't on it, just tell Claude the number.
+Claude shows the priced lines for approval, then creates a **draft** proposal document for the client. Open it in GHL (Payments → Documents & Contracts → Documents), review, and send. Ask for an estimate instead and it creates a GHL estimate, returning a direct link. To use a price other than the rate card's, or an item that isn't on it, just tell Claude the number.
 
 ## See how it handles failure
 
@@ -49,6 +44,8 @@ Alerts always go to `runs/alerts.log`. To get them pushed, set `ALERT_WEBHOOK_UR
 
 ## Limits
 
-- It creates **estimates**, GHL's priced-quote object (accepted estimates convert to invoices). It does not create Documents & Contracts e-signature proposals: GHL's public API can send an existing template but can't create one or fill its content.
-- It creates drafts. Sending is your call, in GHL.
+- **Proposals** use a template you build once in GHL (GHL's public API can't create or edit templates). The skill fills it through contact custom fields and creates a draft from it. Only the text fields vary per proposal; layout and signature are fixed in the template.
+- **Estimates** are the alternative: fully API-driven, no template needed, and an accepted estimate converts to an invoice.
+- Everything is created as a draft. Sending is your call, in GHL.
+- The API can't tell whether the merge rendered well, so open each draft before sending.
 - Not affiliated with HighLevel.
