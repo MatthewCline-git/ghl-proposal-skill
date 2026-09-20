@@ -19,7 +19,7 @@ You draft the proposal and make every GHL call yourself with `curl`. No scripts,
 
 `.env` next to this file with `GHL_TOKEN` and `GHL_LOCATION_ID`, plus a one-time proposal template named exactly `Proposal` (see `template/README.md`). If either is missing, walk the user through setup: the full guide is `ONBOARDING.md` at github.com/MatthewCline-git/ghl-proposal-skill.
 
-**Rate card check.** If `rate_card.json`'s `_comment` still says SAMPLE, the prices are placeholders. Before the first proposal, tell the user and either get their real prices (rewrite the file with them) or get an explicit "use the sample prices for this test".
+**Rate card check.** If `rate_card.json` says `"configured": false`, run the rate card interview (below) before the first proposal.
 
 ## Setup check
 
@@ -30,6 +30,17 @@ When asked to check setup (onboarding uses this), run these reads and report ✓
 4. `GET $B/locations/$GHL_LOCATION_ID/customFields` → then create any of the five proposal fields that are missing (step 4 below); say you did.
 5. `GET $B/proposals/templates?locationId=$GHL_LOCATION_ID&limit=20&skip=0` → a proposal template named `Proposal` exists.
 A 401/403 on one read means that scope is missing from the token; name it (contacts, users, custom fields, Documents & Contracts).
+
+## Rate card interview (when `rate_card.json` says `"configured": false`)
+
+Do this before the first proposal. Ask one question at a time, in plain language, and don't suggest services for them:
+
+1. **What do you sell?** For each service: a short name, one plain sentence a client would understand, and the price. If a service is recurring (monthly), use the first month as the amount and put "then $X/month" in the description.
+2. **Standard prices or quoted per job?** For any service they quote each time, leave its `amount` out of the file; you'll ask for the number on every proposal.
+3. **Standard terms.** How do they get paid (deposit, on delivery, net 30)? Anything standard about revisions, cancellation or ongoing work? These print on every proposal. A term that applies only with one service is `{"text": "...", "only_with": "<sku>"}`.
+4. **How many days** should a proposal stay valid (default 14), and which currency (default USD)?
+
+Then rewrite `rate_card.json` (skus are short lowercase-hyphen slugs, `"configured": true`, `items` may be empty if they quote everything), show it to the user, and get a yes. Until then don't create a proposal.
 
 ## Calling GHL
 

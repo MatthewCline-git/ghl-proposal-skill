@@ -23,15 +23,14 @@ Optional alerts: `ALERT_WEBHOOK_URL` (Slack-compatible) and/or `ALERT_EMAIL` +
 
 1. **Collect** from the user: client name, company, email (phone optional) and
    the call notes. If the notes don't say what was discussed, ask — don't invent scope.
-2. **Read `rate_card.json`** — the user's default price list. Use its skus where
+2. **Read `rate_card.json`** — the user's default price list. If it says `"configured": false`, run the rate card interview below first. Use its skus where
    they fit. If the user gives a different price, or something that isn't on the
    card, use an `amount` override or a custom line (`name`, `description`,
    `amount`). **Every number on a proposal must be one the user gave you or that is
    on the card. Never estimate, round or invent a price;** if a price is missing,
    ask. **Only include what the notes call for**; if an item looks like a technical
    prerequisite of something they asked for, leave it out and suggest it in the dry
-   run instead. If `rate_card.json`'s `_comment` still says SAMPLE, tell the user
-   before the first proposal and get their real prices or an explicit OK to use the samples.
+   run instead.
 3. **Write a spec** to a temp file (see `examples/sample-spec.json`):
    - `intro`: 2–3 plain sentences in the client's own words — what they told us
      and why this scope. No sales copy, no jargon.
@@ -49,6 +48,17 @@ Optional alerts: `ALERT_WEBHOOK_URL` (Slack-compatible) and/or `ALERT_EMAIL` +
 6. **Sending:** documents are always drafts; the user reviews and presses Send in
    GHL. `--send` exists only for estimates and only if the user explicitly says
    send; it refuses placeholder addresses.
+
+## Rate card interview (when `rate_card.json` says `"configured": false`)
+
+Do this before the first proposal. Ask one question at a time, in plain language, and don't suggest services for them:
+
+1. **What do you sell?** For each service: a short name, one plain sentence a client would understand, and the price. If a service is recurring (monthly), use the first month as the amount and put "then $X/month" in the description.
+2. **Standard prices or quoted per job?** For any service they quote each time, leave its `amount` out of the file; you'll ask for the number on every proposal.
+3. **Standard terms.** How do they get paid (deposit, on delivery, net 30)? Anything standard about revisions, cancellation or ongoing work? These print on every proposal. A term that applies only with one service is `{"text": "...", "only_with": "<sku>"}`.
+4. **How many days** should a proposal stay valid (default 14), and which currency (default USD)?
+
+Then rewrite `rate_card.json` (skus are short lowercase-hyphen slugs, `"configured": true`, `items` may be empty if they quote everything), show it to the user, and get a yes. Until then don't create a proposal.
 
 ## Reporting results
 

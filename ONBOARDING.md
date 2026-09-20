@@ -81,28 +81,37 @@ GHL doesn't let software create templates, so this is manual, and it's the part 
 
 Then run the setup check again. Everything should be ✓, including the template named `Proposal`. If it isn't found, they mis-typed the name or haven't saved.
 
-## Step 6: Restart the app (required)
+## Step 6: Their services and prices (rate card)
+
+The skill ships with an **empty** rate card on purpose: it must describe *their* business, not a guess at one. Read the **Rate card interview** section of `~/.claude/skills/ghl-proposal/SKILL.md` and run it now, one question at a time:
+
+1. What do you sell? For each service: a short name, one plain sentence a client would understand, and the price (and whether it's one-time or monthly).
+2. Do you have standard prices, or do you quote each job?
+3. Standard terms: how do you get paid, and anything standard about revisions, cancellation or ongoing work?
+4. How many days should a proposal stay valid, and which currency?
+
+Write `~/.claude/skills/ghl-proposal/rate_card.json` from the answers (`"configured": true`), read it back to them, and get a yes. Don't propose services or prices for them, and don't fill gaps with guesses. If they aren't sure yet, do the ones they know; they can add to the file any time, or tell Claude a price for a single proposal.
+
+## Step 7: Restart the app (required)
 
 Tell them clearly:
 
 > **Quit the app completely and reopen it.** On Mac press **Cmd+Q** (closing the window isn't enough). On Windows, quit it from the system tray. Skills are only picked up when the app starts, so the skill won't exist until you do this. When it's back, start a **new chat**.
 
-Ask them to reply once they're back. Because the app restarts, this conversation may be gone; so before they quit, give them this exact message to paste into the new chat:
+Because the app restarts, this conversation may be gone. So **before they quit**, write them a test message to paste into the new chat, built from **their own services**:
 
-> /ghl-proposal Test proposal for Sam Rivera, Rivera Roofing, sam@riveraroofing.example.com. Notes: 6 trucks, crew is on roofs all day so calls go to voicemail, leads go cold for two days, no idea which jobs come from where. Dry run first, then create the draft.
+> /ghl-proposal Test proposal for <made-up person>, <made-up company>, <name>@<something>.example.com. Notes: <2-3 sentences describing a made-up client situation that one or two of THEIR services would solve>. Dry run first, then create the draft.
 
-If typing `/` doesn't show `ghl-proposal` after restarting, check that `~/.claude/skills/ghl-proposal/SKILL.md` exists and restart once more.
+The email must end in `.example.com` so nothing can ever be sent to a real person. Tell them to paste it after the restart. If typing `/` doesn't show `ghl-proposal`, check that `~/.claude/skills/ghl-proposal/SKILL.md` exists and restart once more.
 
-## Step 7: First test (in the new chat, with the skill loaded)
+## Step 8: First test (in the new chat, with the skill loaded)
 
-The skill will dry-run, show the priced lines, then create a **draft** document. It always tells them to open it in GHL before sending. Have them open **Payments → Documents & Contracts → Documents**, open the draft, and check: the client's name and company are filled in, the intro, scope and total read correctly, the layout is clean, and the signature sits on page two. Nothing is sent to anyone; documents are always drafts.
+The skill dry-runs, shows the priced lines (each price traced to their rate card), then creates a **draft** document. It always tells them to open it in GHL before sending. Have them open **Payments → Documents & Contracts → Documents**, open the draft, and check: the client's name and company are filled in, the intro, scope and total read correctly, the layout is clean, and the signature sits on page two. Nothing is sent to anyone; documents are always drafts.
 
-Test data (the "Sam Rivera" contact and draft) can be deleted in GHL afterwards.
+Test data (the made-up contact and draft) can be deleted in GHL afterwards.
 
-## Step 8: Make it theirs
+## Step 9: Optional extras
 
-Open `~/.claude/skills/ghl-proposal/rate_card.json` with them. The services and prices shipped are **placeholders**. Ask what they actually sell and charge, and rewrite the list and the standard terms with them. From then on they can also just tell Claude a different price for one proposal.
-
-Optional, mention once and only if they want it. Scripted edition: failure alerts (`ALERT_WEBHOOK_URL`, a Slack incoming webhook, or `ALERT_EMAIL` plus `RESEND_API_KEY`, in the `.env`; otherwise alerts only go to `runs/alerts.log`) and scheduling `python3 scripts/watchdog.py` to catch runs that hang; see `RUNBOOK.md`. Lite edition: failures are reported in the chat and each run is one line in `runs.log`; if they later want alerts and a watchdog, they can install Python and switch to the scripted edition.
+Mention once and only if they want it. Scripted edition: failure alerts (`ALERT_WEBHOOK_URL`, a Slack incoming webhook, or `ALERT_EMAIL` plus `RESEND_API_KEY`, in the `.env`; otherwise alerts only go to `runs/alerts.log`) and scheduling `python3 scripts/watchdog.py` to catch runs that hang; see `RUNBOOK.md`. Lite edition: failures are reported in the chat and each run is one line in `runs.log`; if they later want alerts and a watchdog, they can install Python and switch to the scripted edition.
 
 Finish by telling them how to use it day to day: "After a call, say `/ghl-proposal`, then the client's name, company, email and your call notes."

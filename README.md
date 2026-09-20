@@ -44,6 +44,7 @@ Ask Claude to run the failure demo, or run the script directly:
 
 ```bash
 cd ghl-proposal
+export GHL_PROPOSAL_RATE_CARD=rate_card.example.json   # a made-up example card; setup writes yours
 python3 scripts/create_proposal.py examples/sample-spec.json --dry-run
 python3 scripts/create_proposal.py examples/sample-spec.json --inject transient   # fake outage: retries, recovers
 python3 scripts/create_proposal.py examples/sample-spec.json --inject hard        # revoked token: real 401, stops, alerts

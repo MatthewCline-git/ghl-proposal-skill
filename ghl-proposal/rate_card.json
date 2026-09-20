@@ -1,47 +1,8 @@
 {
-  "_comment": "SAMPLE PRICES — placeholders so the demo runs. This is YOUR default price list: edit freely, or point GHL_PROPOSAL_RATE_CARD at your own file. A proposal can also override a price or add a custom line, but only with a number you gave.",
+  "_comment": "NOT CONFIGURED. Run the rate card interview in SKILL.md: what you sell, what you charge, your standard terms. The interview sets configured to true.",
+  "configured": false,
   "currency": "USD",
   "valid_days": 14,
-  "items": {
-    "a2p-setup": {
-      "name": "A2P registration & phone number setup",
-      "description": "Business registration and texting number setup so messages are actually delivered.",
-      "amount": 350
-    },
-    "lead-funnel": {
-      "name": "Lead capture funnel",
-      "description": "Landing page and form that drops every new lead straight into your pipeline.",
-      "amount": 1500
-    },
-    "missed-call-textback": {
-      "name": "Missed-call text-back",
-      "description": "Instant text to any caller you didn't pick up, so the job doesn't go to the next contractor.",
-      "amount": 750
-    },
-    "speed-to-lead": {
-      "name": "New-lead follow-up sequence",
-      "description": "Automatic call, text and email follow-up in the first minutes and days after an inquiry.",
-      "amount": 1250
-    },
-    "review-requests": {
-      "name": "Review request automation",
-      "description": "A review request goes out automatically when a job is marked complete.",
-      "amount": 750
-    },
-    "pipeline-reporting": {
-      "name": "Pipeline & reporting dashboard",
-      "description": "One view of leads, estimates, booked jobs and revenue by source.",
-      "amount": 1500
-    },
-    "monthly-management": {
-      "name": "Monthly management & support (first month)",
-      "description": "Ongoing monitoring, fixes and adjustments. Continues monthly at this rate until cancelled.",
-      "amount": 500
-    }
-  },
-  "terms": [
-    "50% due on acceptance, balance on delivery.",
-    {"text": "Monthly management renews monthly and can be cancelled with 30 days' notice.", "only_with": "monthly-management"},
-    "Third-party fees (phone numbers, texting, email sending) are billed at cost."
-  ]
+  "items": {},
+  "terms": []
 }

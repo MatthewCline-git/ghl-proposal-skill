@@ -65,6 +65,8 @@ def validate_spec(spec: dict, card: dict) -> None:
             errs.append(f"items[{i}] has unknown keys {sorted(extra)}")
         sku = it.get("sku")
         if sku is not None:
+            if sku in card["items"] and "amount" not in card["items"][sku] and "amount" not in it:
+                errs.append(f"items[{i}].sku {sku!r} is quoted per job on the rate card: give its amount")
             if sku not in card["items"]:
                 errs.append(f"items[{i}].sku {sku!r} is not in the rate card ({', '.join(card['items'])}); "
                             f"for something else, give it a name, description and amount instead of a sku")
@@ -108,8 +110,8 @@ def price(spec: dict, card: dict) -> tuple[list[dict], float]:
         if "sku" in it:
             r = card["items"][it["sku"]]
             name, base = r["name"], r["description"]
-            amount = it.get("amount", r["amount"])
-            source = "override" if "amount" in it and it["amount"] != r["amount"] else "rate_card"
+            amount = it.get("amount", r.get("amount"))
+            source = "override" if "amount" in it and it["amount"] != r.get("amount") else "rate_card"
         else:
             name, base, amount, source = it["name"].strip(), it["description"].strip(), it["amount"], "custom"
         desc = base + (f" {it['note'].strip()}" if it.get("note") else "")
@@ -259,6 +261,9 @@ def main() -> int:
 
     try:
         card = json.loads(Path(os.environ.get("GHL_PROPOSAL_RATE_CARD") or SKILL_DIR / "rate_card.json").read_text())
+        if not card.get("configured"):
+            raise SetupError("rate_card.json isn't set up yet. Run the rate card interview in SKILL.md "
+                             "(what you sell, prices, standard terms) and set configured to true.")
         try:
             spec = json.loads(Path(args.spec).read_text())
         except (OSError, json.JSONDecodeError) as exc:
