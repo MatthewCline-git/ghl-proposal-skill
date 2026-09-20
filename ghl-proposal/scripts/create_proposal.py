@@ -91,6 +91,9 @@ def validate_spec(spec: dict, card: dict) -> None:
             errs.append(f"items[{i}].qty must be an integer 1-20")
         if len(it.get("note", "")) > 300:
             errs.append(f"items[{i}].note is over 300 characters")
+    n = spec.get("estimate_number")
+    if n is not None and (isinstance(n, bool) or not isinstance(n, int) or not 1 <= n <= 999_999):
+        errs.append("estimate_number must be an integer 1-999999 (GHL rejects one already in use)")
     if "terms" in spec and (not isinstance(spec["terms"], list)
                             or not all(isinstance(t, str) and t.strip() for t in spec["terms"])):
         errs.append("terms must be a list of non-empty strings (it replaces the rate card's terms)")
@@ -225,7 +228,7 @@ def verify(ghl: GHL, run_id: str, *, contact_id: str, lines: list[dict], total: 
     return e
 
 
-RUNBOOK = {401: "§1 credentials", 403: "§1 credentials", 422: "§2 payload rejected"}
+RUNBOOK = {401: "§1 credentials", 403: "§1 credentials", 400: "§2 payload rejected", 422: "§2 payload rejected"}
 
 
 def runbook_ref(exc: Exception) -> str:
@@ -311,6 +314,8 @@ def main() -> int:
                 "expiryDate": (date.today() + timedelta(days=card["valid_days"])).isoformat(),
                 "meta": {"runId": run_id},
             }
+            if spec.get("estimate_number"):
+                body["estimateNumber"] = spec["estimate_number"]
             created = create_estimate(ghl, body, run_id, counters)
             estimate_id = created.get("_id")
 

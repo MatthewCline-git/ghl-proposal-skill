@@ -21,9 +21,9 @@ GHL rejected the token. It was revoked, rotated, expired or lacks a scope.
 2. Create a new token with contacts, `invoices/estimate` and users scopes.
 3. Update `GHL_TOKEN`, then resume with the run id.
 
-## §2 payload rejected (422)
+## §2 payload rejected (400/422)
 GHL refused the estimate's content; the error text names the field. Fix the spec
-(or `rate_card.json`), then resume. If it's a field this script builds, that's a bug
+(or `rate_card.json`), then resume. A 400 "Estimate number already exists" means the `estimate_number` in the spec is taken: pick another or omit it. If it's a field this script builds, that's a bug
 to fix in `create_proposal.py`, not to work around by hand.
 
 ## §3 GHL unavailable (429/5xx after retries)
