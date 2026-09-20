@@ -11,6 +11,11 @@ Free to use (MIT).
 - **Verified.** After creating, it reads what landed back from GHL and fails loudly if the contact, fields, template or signature field are wrong.
 - **Doesn't fail silently.** Transient errors are retried; anything else stops, writes an alert, and tells you the fix ([RUNBOOK.md](ghl-proposal/RUNBOOK.md)). Re-running a failed run never creates a duplicate. A watchdog flags runs that hang.
 
+## Two editions
+
+- **`ghl-proposal-lite`** (recommended to start): Claude calls GHL directly with `curl`, following the tested playbook in `SKILL.md`. Nothing to install. Failures are reported to you in the chat; a plain `runs.log` records each run.
+- **`ghl-proposal`**: the same behavior driven by Python scripts (standard library only). It runs a fixed retry / duplicate-guard / verify routine, keeps a structured run log, can push failure alerts, and has a watchdog for runs that hang. Needs Python 3.
+
 ## Set up (about 10 minutes)
 
 The easiest way is to let Claude walk you through it. Open Claude Code (the Code tab in the Claude desktop app, or a terminal) and paste:
@@ -19,7 +24,7 @@ The easiest way is to let Claude walk you through it. Open Claude Code (the Code
 
 It installs the skill, sends you to the right GHL pages, and checks each step. You'll need to: create a token in GHL, paste it into a file (never into chat), build one proposal template, and **fully quit and reopen the app** so it picks up the skill.
 
-Prefer to do it yourself? Follow [ONBOARDING.md](ONBOARDING.md); the steps read fine for a person too.
+Prefer to do it yourself? Follow [ONBOARDING.md](ONBOARDING.md); the steps read fine for a person too. The rest of this page describes the scripted edition's commands.
 
 ## Use
 

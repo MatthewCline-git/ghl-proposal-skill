@@ -2,6 +2,8 @@
 
 You are setting up the **ghl-proposal** skill for the person you're talking to. It turns call notes into a draft proposal in their GoHighLevel (GHL) account. Setup takes about 10 minutes.
 
+There are two editions in the repo. Install the **lite** edition (`ghl-proposal-lite`) unless they ask otherwise: Claude calls GHL directly with `curl`, so there is nothing to install. The other (`ghl-proposal`) adds Python scripts for a fixed retry/verify routine, a run log and an unattended failure watchdog; see step 8.
+
 **How to behave**
 - Work one step at a time. Keep messages short. Say exactly where to click, then wait for the user to confirm before moving on.
 - Do the technical parts yourself (files, commands). Only ask the user to do what needs their hands: clicking in GHL, and pasting the token into a file.
@@ -15,13 +17,13 @@ Start by saying: "I'll set up your proposal skill in about 10 minutes. It has fo
 
 ## Step 1: Install
 
-1. Check Python 3: run `python3 --version` (on Windows try `python --version`). If missing, send them to https://www.python.org/downloads/ and wait for them to finish. Nothing needs installing after that; the skill uses only the standard library.
+1. Check `curl --version` works (it's built into macOS, Linux and Windows 10+). Nothing else is required.
 2. Get the code. If `git --version` works:
    `git clone https://github.com/MatthewCline-git/ghl-proposal-skill.git ~/ghl-proposal-skill`
    (if that folder exists, run `git -C ~/ghl-proposal-skill pull` instead). Without git: download `https://github.com/MatthewCline-git/ghl-proposal-skill/archive/refs/heads/main.zip` and unzip it to `~/ghl-proposal-skill`.
-3. Install the skill by **copying** (not linking, so it works on Windows too):
-   `mkdir -p ~/.claude/skills && cp -R ~/ghl-proposal-skill/ghl-proposal ~/.claude/skills/ghl-proposal`
-   On Windows (PowerShell): `Copy-Item -Recurse $HOME\ghl-proposal-skill\ghl-proposal $HOME\.claude\skills\ghl-proposal`.
+3. Install the skill by **copying** (not linking, so it works on Windows too), into a folder named `ghl-proposal`:
+   `mkdir -p ~/.claude/skills && cp -R ~/ghl-proposal-skill/ghl-proposal-lite ~/.claude/skills/ghl-proposal`
+   On Windows (PowerShell): `Copy-Item -Recurse $HOME\ghl-proposal-skill\ghl-proposal-lite $HOME\.claude\skills\ghl-proposal`.
    If `~/.claude/skills/ghl-proposal` already exists, ask before overwriting, and never delete an existing `.env` inside it.
 4. Confirm `~/.claude/skills/ghl-proposal/SKILL.md` exists. Tell them: "Installed. Next I'll connect it to GoHighLevel."
 
@@ -57,7 +59,7 @@ If they can't find a scope by that name, tell them to pick the closest ones unde
 2. Write their location ID from step 2 after `GHL_LOCATION_ID=`. Leave `GHL_TOKEN=` empty.
 3. Open the file in their editor so they can paste: macOS `open -t ~/.claude/skills/ghl-proposal/.env`; Windows `notepad %USERPROFILE%\.claude\skills\ghl-proposal\.env`.
 4. Tell them: "Paste the token right after `GHL_TOKEN=` (no spaces or quotes), save the file, and tell me when it's saved. I won't look at the token."
-5. When they say saved, run from that folder: `python3 scripts/check_setup.py`. It prints a ✓ or ✗ per item and says how to fix each ✗. Fix what you can; for a missing scope, send them back to the integration page to tick it (the token can be edited, no need to recreate). At this stage only **proposal template** should be ✗; that's step 5. The check also creates the five proposal fields in their GHL, which is expected.
+5. When they say saved, read the **Setup check** section of `~/.claude/skills/ghl-proposal/SKILL.md` and carry it out yourself (load the `.env`, run those reads with `curl`, and report ✓ or ✗ per item with the fix for each ✗; never print the token). Fix what you can; for a missing scope, send them back to the integration page to tick it (the token can be edited, no need to recreate). At this stage only **proposal template** should be ✗; that's step 5. The check also creates the five proposal fields in their GHL, which is expected.
 
 ## Step 5: Build the proposal template (their hands, one time)
 
@@ -70,7 +72,7 @@ GHL doesn't let software create templates, so this is manual, and it's the part 
 5. "Under Acceptance, add a **Signature** field for the client (assigned to the signer). Add a date field if you like."
 6. "Save."
 
-Then run `python3 scripts/check_setup.py` again. Everything should be ✓, including `found 'Proposal'`. If it says no template named 'Proposal', they mis-typed the name or haven't saved.
+Then run the Setup check again. Everything should be ✓, including the template named `Proposal`. If it isn't found, they mis-typed the name or haven't saved.
 
 ## Step 6: Restart the app (required)
 
@@ -94,6 +96,6 @@ Test data (the "Sam Rivera" contact and draft) can be deleted in GHL afterwards.
 
 Open `~/.claude/skills/ghl-proposal/rate_card.json` with them. The services and prices shipped are **placeholders**. Ask what they actually sell and charge, and rewrite the list and the standard terms with them. From then on they can also just tell Claude a different price for one proposal.
 
-Optional, mention once and only if they want it: failure alerts. Set `ALERT_WEBHOOK_URL` (a Slack incoming webhook) or `ALERT_EMAIL` plus `RESEND_API_KEY` in the `.env`; otherwise alerts only go to `runs/alerts.log`. See `RUNBOOK.md`.
+Optional, mention once and only if they want it: the lite edition only tells them about a failure in the chat and keeps a plain `runs.log`. If they want pushed failure alerts, a watchdog for runs that hang, and a fixed retry/verify routine that doesn't depend on Claude following instructions, install the scripted edition instead: it needs Python 3 (https://www.python.org/downloads/), the folder is `ghl-proposal` in the repo, and its `RUNBOOK.md`, `scripts/check_setup.py` and alert settings (`ALERT_WEBHOOK_URL`, or `ALERT_EMAIL` plus `RESEND_API_KEY`) replace the lite steps.
 
 Finish by telling them how to use it day to day: "After a call, say `/ghl-proposal`, then the client's name, company, email and your call notes."

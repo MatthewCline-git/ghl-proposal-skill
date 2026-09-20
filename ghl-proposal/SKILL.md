@@ -28,7 +28,10 @@ Optional alerts: `ALERT_WEBHOOK_URL` (Slack-compatible) and/or `ALERT_EMAIL` +
    card, use an `amount` override or a custom line (`name`, `description`,
    `amount`). **Every number on a proposal must be one the user gave you or that is
    on the card. Never estimate, round or invent a price;** if a price is missing,
-   ask.
+   ask. **Only include what the notes call for**; if an item looks like a technical
+   prerequisite of something they asked for, leave it out and suggest it in the dry
+   run instead. If `rate_card.json`'s `_comment` still says SAMPLE, tell the user
+   before the first proposal and get their real prices or an explicit OK to use the samples.
 3. **Write a spec** to a temp file (see `examples/sample-spec.json`):
    - `intro`: 2–3 plain sentences in the client's own words — what they told us
      and why this scope. No sales copy, no jargon.

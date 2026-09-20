@@ -116,12 +116,17 @@ def create_document(ghl: GHL, template: dict, contact_id: str, run_id: str, coun
     raise AssertionError("unreachable")
 
 
-def stored_copy(resp: dict) -> list:
-    url = resp["document"]["versionHistory"][0]["downloadUrl"]
-    code, raw = http("GET", url, headers={})
-    if code != 200:
-        raise VerifyError(f"could not fetch the stored document copy (HTTP {code})")
-    return json.loads(raw)
+def stored_copies(resp: dict) -> list:
+    """Every stored version of the new document (the create response carries two)."""
+    out = []
+    for v in resp["document"]["versionHistory"]:
+        code, raw = http("GET", v["downloadUrl"], headers={})
+        if code != 200:
+            raise VerifyError(f"could not fetch a stored document copy (HTTP {code})")
+        out.append(json.loads(raw))
+    if not out:
+        raise VerifyError("the create response has no stored document copy to check")
+    return out
 
 
 def walk(node, out: list):
@@ -151,20 +156,22 @@ def verify(ghl: GHL, doc_id: str, *, contact_id: str, template: dict, ids: dict,
             problems.append("document is not addressed to this contact")
     checked = ["fields written and read back", "document exists, draft, addressed to the contact"]
     if resp is not None:  # only available on creation, not on a resumed run
-        nodes: list = []
-        walk(stored_copy(resp), nodes)
-        html_text = " ".join(str((n.get("component") or {}).get("options", {}).get("text", ""))
-                             for n in nodes if isinstance(n, dict))
-        placeholders = set(PLACEHOLDER.findall(html_text))
-        if not placeholders:
-            problems.append("the template has no {{contact.proposal_*}} merge fields; was it pasted correctly?")
-        if unknown := placeholders - set(values):
-            problems.append(f"template uses merge fields the skill doesn't fill: {sorted(unknown)}")
-        if missing := set(values) - placeholders:
-            problems.append(f"template is missing merge fields for: {sorted(missing)} (content would be dropped)")
-        if not any(n.get("type") == "Signature" for n in nodes):
-            problems.append("the template has no signature field")
-        checked.append("template has every merge field and a signature field")
+        for i, copy in enumerate(stored_copies(resp)):
+            nodes: list = []
+            walk(copy, nodes)
+            html_text = " ".join(str((n.get("component") or {}).get("options", {}).get("text", ""))
+                                 for n in nodes if isinstance(n, dict))
+            placeholders = set(PLACEHOLDER.findall(html_text))
+            tag = f"stored copy {i + 1}: "
+            if not placeholders:
+                problems.append(tag + "the template has no {{contact.proposal_*}} merge fields; was it pasted correctly?")
+            if unknown := placeholders - set(values):
+                problems.append(tag + f"template uses merge fields the skill doesn't fill: {sorted(unknown)}")
+            if missing := set(values) - placeholders:
+                problems.append(tag + f"template is missing merge fields for: {sorted(missing)} (content would be dropped)")
+            if not any(n.get("type") == "Signature" for n in nodes):
+                problems.append(tag + "the template has no signature field")
+        checked.append("every stored copy has every merge field and a signature field")
     if problems:
         raise VerifyError("; ".join(problems))
     return {"checked": checked, "not_checked": "how the merge renders and page layout: open the document in GHL"}
